@@ -20,12 +20,14 @@ import {
   repositoryCheckpointScopeIds,
   repositoryFilePath,
   repositorySectionForPath,
+  resolveThreadGitRepository,
   resolveWorktreeRepositorySelection,
   rewindFileRestore,
   THREAD_REPOSITORY_SECTIONS_VISIBLE,
   isRelativePathInsideFolder,
   threadChangedRepositories,
   threadGitRepositories,
+  threadGitRepositoryLabel,
   threadRepositoryScopes,
   threadRepositorySections,
   unpinThreadRepository,
@@ -280,6 +282,46 @@ describe("threadRepositorySections", () => {
         threadCwd: "/wt",
       }),
     ).toEqual([{ repositoryPath: "/work/api", name: "api", cwd: "/wt/api" }]);
+  });
+
+  it("acts in the chosen repository, else the thread's folder or its first repository", () => {
+    const api = { repositoryPath: "/work/api", name: "api", cwd: "/work/api" };
+    const web = { repositoryPath: "/work/web", name: "web", cwd: "/work/web" };
+    const repositories = [api, web];
+    expect(
+      resolveThreadGitRepository({ repositories, chosenPath: null, threadFolderIsRepo: true }),
+    ).toBeNull();
+    expect(
+      resolveThreadGitRepository({ repositories, chosenPath: web.cwd, threadFolderIsRepo: true }),
+    ).toBe(web);
+    // A plain folder has no Git state of its own to show.
+    expect(
+      resolveThreadGitRepository({ repositories, chosenPath: null, threadFolderIsRepo: false }),
+    ).toBe(api);
+    // A repository the thread no longer reaches is never acted in.
+    expect(
+      resolveThreadGitRepository({
+        repositories,
+        chosenPath: "/work/gone",
+        threadFolderIsRepo: true,
+      }),
+    ).toBeNull();
+    expect(
+      resolveThreadGitRepository({ repositories: [], chosenPath: null, threadFolderIsRepo: false }),
+    ).toBeNull();
+  });
+
+  it("names a repository by its folder in the project, so two of one name stay apart", () => {
+    const nested = { repositoryPath: "/code/api-docs/bookings-api", name: "bookings-api" };
+    expect(threadGitRepositoryLabel(nested, "/code")).toBe("api-docs/bookings-api");
+    expect(
+      threadGitRepositoryLabel({ ...nested, repositoryPath: "/code/bookings-api" }, "/code"),
+    ).toBe("bookings-api");
+    // A folder outside the project, or no known project folder, keeps its name.
+    expect(threadGitRepositoryLabel({ ...nested, repositoryPath: "/elsewhere/api" }, "/code")).toBe(
+      "bookings-api",
+    );
+    expect(threadGitRepositoryLabel(nested, null)).toBe("bookings-api");
   });
 
   it("lists a task folder's worktrees, changed first, and never a shared checkout", () => {
