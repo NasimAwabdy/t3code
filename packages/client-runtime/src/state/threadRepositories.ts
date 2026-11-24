@@ -626,10 +626,29 @@ export function pinnableThreadRepositories(input: {
   const shown = new Set(
     [...input.sections.visible, ...input.sections.hidden].map((section) => section.key),
   );
-  return input.folders.flatMap((folder) =>
-    folder.state !== "git" || folder.path === input.threadCwd || shown.has(folder.path)
-      ? []
-      : [{ repositoryPath: folder.path, name: folder.name }],
+  return distinctRepositoryNames(
+    input.folders.flatMap((folder) =>
+      folder.state !== "git" || folder.path === input.threadCwd || shown.has(folder.path)
+        ? []
+        : [{ repositoryPath: folder.path, name: folder.name }],
+    ),
+    input.threadCwd,
+  );
+}
+
+/** Repositories that share a folder name, like `bookings-api` and `api-docs/bookings-api`, go by their path. */
+function distinctRepositoryNames(
+  repositories: ReadonlyArray<PinnedThreadRepository>,
+  root: string | null,
+): ReadonlyArray<PinnedThreadRepository> {
+  const counts = new Map<string, number>();
+  for (const repository of repositories) {
+    counts.set(repository.name, (counts.get(repository.name) ?? 0) + 1);
+  }
+  return repositories.map((repository) =>
+    (counts.get(repository.name) ?? 0) > 1
+      ? { ...repository, name: threadGitRepositoryLabel(repository, root) }
+      : repository,
   );
 }
 
@@ -641,12 +660,15 @@ export function addableTaskFolderRepositories(input: {
   const present = new Set(
     input.taskFolder.repositories.map((repository) => repository.repositoryPath),
   );
-  return input.folders.flatMap((folder) =>
-    folder.state !== "git" ||
-    folder.path === input.taskFolder.projectRoot ||
-    present.has(folder.path)
-      ? []
-      : [{ repositoryPath: folder.path, name: folder.name }],
+  return distinctRepositoryNames(
+    input.folders.flatMap((folder) =>
+      folder.state !== "git" ||
+      folder.path === input.taskFolder.projectRoot ||
+      present.has(folder.path)
+        ? []
+        : [{ repositoryPath: folder.path, name: folder.name }],
+    ),
+    input.taskFolder.projectRoot,
   );
 }
 

@@ -258,6 +258,20 @@ describe("threadRepositorySections", () => {
         ],
       }),
     ).toEqual([{ repositoryPath: "/work/wrapper/cli", name: "cli" }]);
+
+    expect(
+      pinnableThreadRepositories({
+        sections,
+        threadCwd: "/work/wrapper",
+        folders: [
+          { path: "/work/wrapper/api", name: "api", state: "git" },
+          { path: "/work/wrapper/specs/api", name: "api", state: "git" },
+        ],
+      }),
+    ).toEqual([
+      { repositoryPath: "/work/wrapper/api", name: "api" },
+      { repositoryPath: "/work/wrapper/specs/api", name: "specs/api" },
+    ]);
   });
 
   it("offers Git changes of every repository a thread reaches, changed ones first", () => {
