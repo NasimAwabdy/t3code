@@ -1163,7 +1163,9 @@ export default function DiffPanel({
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button size="xs" variant="ghost-muted" />}
-              className="min-w-14 max-w-48 shrink"
+              // The path tells same-named repositories apart, so the comparison gives way first. A
+              // narrower row caps it so it still fits; only a phone-width row truncates it further.
+              className="max-w-48 shrink-0 @max-[18rem]/diff-refs:max-w-28 @max-[14rem]/diff-refs:min-w-14 @max-[14rem]/diff-refs:shrink"
               aria-label={gt("Repository: {name}", { name: gitRepositoryLabel })}
             >
               <span className="truncate">{gitRepositoryLabel}</span>
